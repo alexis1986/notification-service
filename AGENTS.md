@@ -79,3 +79,49 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
     *   Esto permite que Spring Boot la detecte y la inyecte automáticamente en el mapa de estrategias del caso de uso.
 
 Gracias a este diseño, **no se requiere modificar** la lógica de orquestación en `SendNotificationUseCaseImpl` ni ninguna otra parte del core de la aplicación para soportar el nuevo tipo de notificación.
+
+## 6. Flujo de Trabajo Git y Convenciones de Commits
+
+Para mantener un historial de versiones claro y facilitar la trazabilidad de los cambios, el proyecto sigue un flujo de trabajo basado en ramas y la especificación de Conventional Commits.
+
+### Flujo de Ramas (Branching Workflow)
+
+*   **`main`**: Rama principal que siempre debe reflejar el código listo para producción. Las integraciones directas a `main` están prohibidas.
+*   **`develop`**: Rama de integración donde se consolidan las funcionalidades desarrolladas. Las `feature branches` se fusionan aquí.
+*   **`feat/<feature-name>`**: Ramas de desarrollo para nuevas funcionalidades. Deben crearse a partir de `develop` y fusionarse de nuevo a `develop` una vez completadas.
+*   **`fix/<issue-description>`**: Ramas para correcciones de errores. Deben crearse a partir de `develop` (o `main` para hotfixes) y fusionarse a la rama correspondiente.
+*   **`refactor/<description>`**: Ramas para refactorizaciones de código. Deben crearse a partir de `develop` y fusionarse de nuevo a `develop`.
+
+### Convenciones de Commits (Conventional Commits)
+
+Cada mensaje de commit debe seguir la especificación de Conventional Commits, lo que permite generar historiales de cambios y versionado semántico automáticamente. La estructura básica es:
+
+```
+<tipo>(<ámbito>): <descripción>
+
+[cuerpo opcional]
+
+[pie de página opcional]
+```
+
+**Tipos (Types) comunes:**
+
+*   **`feat`**: Una nueva funcionalidad.
+*   **`fix`**: Una corrección de error.
+*   **`docs`**: Cambios en la documentación.
+*   **`style`**: Cambios que no afectan el significado del código (espacios en blanco, formato, puntos y comas omitidos, etc.).
+*   **`refactor`**: Un cambio de código que no corrige un error ni añade una característica.
+*   **`perf`**: Un cambio de código que mejora el rendimiento.
+*   **`test`**: Añadir pruebas que faltan o corregir pruebas existentes.
+*   **`build`**: Cambios que afectan el sistema de compilación o dependencias externas (ej., maven, npm).
+*   **`ci`**: Cambios en los archivos y scripts de configuración de CI.
+*   **`chore`**: Otros cambios que no modifican el código fuente o las pruebas.
+
+**Ámbito (Scope) opcional:** Proporciona un contexto adicional para el cambio (ej., `(auth)`, `(api)`, `(ui)`, `(pom)`).
+
+**Ejemplos:**
+
+*   `feat(users): Añade el registro de nuevos usuarios`
+*   `fix(auth): Corrige el fallo de autenticación de Google`
+*   `refactor(payment): Elimina Lombok y utiliza records de Java`
+*   `docs(readme): Actualiza la sección de instalación`
