@@ -22,9 +22,9 @@ public class SendNotificationUseCaseImpl implements SendNotificationUseCase {
 
     @Override
     public void sendNotification(NotificationRequest request) {
-        NotificationSenderPort sender = senders.get(request.getType());
+        NotificationSenderPort sender = senders.get(request.type());
         if (sender == null) {
-            throw new IllegalArgumentException("No sender found for notification type: " + request.getType());
+            throw new IllegalArgumentException("No sender found for notification type: " + request.type());
         }
         sender.sendNotification(request);
     }

@@ -19,14 +19,14 @@ public class EmailNotificationSenderAdapter implements NotificationSenderPort {
     @Override
     public void sendNotification(NotificationRequest request) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setTo(request.getRecipient());
-        mailMessage.setSubject(request.getSubject());
-        mailMessage.setText(request.getBody());
+        mailMessage.setTo(request.recipient());
+        mailMessage.setSubject(request.subject());
+        mailMessage.setText(request.body());
         // TODO: Configure sender email in application.properties or through another configuration mechanism
         // mailMessage.setFrom("your_email@example.com"); 
 
         javaMailSender.send(mailMessage);
-        System.out.println("Email sent to: " + request.getRecipient() + " with subject: " + request.getSubject());
+        System.out.println("Email sent to: " + request.recipient() + " with subject: " + request.subject());
     }
 
     @Override

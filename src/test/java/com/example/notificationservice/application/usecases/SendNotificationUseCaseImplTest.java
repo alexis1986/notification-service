@@ -43,12 +43,12 @@ class SendNotificationUseCaseImplTest {
 
     @Test
     void sendEmailNotification_shouldCallEmailSender() {
-        NotificationRequest request = NotificationRequest.builder()
-                .recipient("test@example.com")
-                .subject("Test Email")
-                .body("This is a test email.")
-                .type(NotificationType.EMAIL)
-                .build();
+        NotificationRequest request = new NotificationRequest(
+                "test@example.com",
+                "Test Email",
+                "This is a test email.",
+                NotificationType.EMAIL
+        );
 
         sendNotificationUseCase.sendNotification(request);
 
@@ -59,11 +59,12 @@ class SendNotificationUseCaseImplTest {
 
     @Test
     void sendWhatsappNotification_shouldCallWhatsappSender() {
-        NotificationRequest request = NotificationRequest.builder()
-                .recipient("+1234567890")
-                .body("This is a test WhatsApp message.")
-                .type(NotificationType.WHATSAPP)
-                .build();
+        NotificationRequest request = new NotificationRequest(
+                "+1234567890",
+                null,
+                "This is a test WhatsApp message.",
+                NotificationType.WHATSAPP
+        );
 
         sendNotificationUseCase.sendNotification(request);
 
@@ -74,12 +75,12 @@ class SendNotificationUseCaseImplTest {
 
     @Test
     void sendPushNotification_shouldCallPushSender() {
-        NotificationRequest request = NotificationRequest.builder()
-                .recipient("device_token_123")
-                .subject("Test Push")
-                .body("This is a test push notification.")
-                .type(NotificationType.PUSH)
-                .build();
+        NotificationRequest request = new NotificationRequest(
+                "device_token_123",
+                "Test Push",
+                "This is a test push notification.",
+                NotificationType.PUSH
+        );
 
         sendNotificationUseCase.sendNotification(request);
 
@@ -100,11 +101,7 @@ class SendNotificationUseCaseImplTest {
         // during construction but no sender exists in the map for a given request.getType(),
         // it would throw an IllegalArgumentException.
 
-        NotificationRequest request = NotificationRequest.builder()
-                .recipient("any")
-                .body("any")
-                .type(null) // Deliberately null to trigger failure
-                .build();
+        NotificationRequest request = new NotificationRequest("any", null, "any", null);
 
         // The current constructor logic would throw if `type` was used to identify sender.
         // The current test scenario directly tests the `sendNotification` method.

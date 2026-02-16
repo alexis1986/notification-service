@@ -22,12 +22,12 @@ public class NotificationController {
 
     @PostMapping
     public ResponseEntity<Void> sendNotification(@Valid @RequestBody SendNotificationRequestDto dto) {
-        NotificationRequest notificationRequest = NotificationRequest.builder()
-                .recipient(dto.getRecipient())
-                .subject(dto.getSubject())
-                .body(dto.getBody())
-                .type(dto.getType())
-                .build();
+        NotificationRequest notificationRequest = new NotificationRequest(
+                dto.recipient(),
+                dto.subject(),
+                dto.body(),
+                dto.type()
+        );
 
         sendNotificationUseCase.sendNotification(notificationRequest);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
