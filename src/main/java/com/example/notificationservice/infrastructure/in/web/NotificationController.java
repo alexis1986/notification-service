@@ -1,7 +1,7 @@
 package com.example.notificationservice.infrastructure.in.web;
 
 import com.example.notificationservice.application.ports.in.SendNotificationUseCase;
-import com.example.notificationservice.domain.model.NotificationRequest;
+import com.example.notificationservice.domain.model.Notification;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +22,14 @@ public class NotificationController {
 
     @PostMapping
     public ResponseEntity<Void> sendNotification(@Valid @RequestBody SendNotificationRequestDto dto) {
-        NotificationRequest notificationRequest = new NotificationRequest(
-                dto.recipient(),
+        Notification notification = new Notification(
+                dto.userId(),
                 dto.subject(),
                 dto.body(),
                 dto.type()
         );
 
-        sendNotificationUseCase.sendNotification(notificationRequest);
+        sendNotificationUseCase.sendNotification(notification);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 }

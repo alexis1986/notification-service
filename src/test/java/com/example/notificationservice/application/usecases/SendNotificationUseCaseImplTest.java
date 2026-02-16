@@ -1,8 +1,12 @@
 package com.example.notificationservice.application.usecases;
 
+import com.example.notificationservice.application.ports.in.SendNotificationUseCase;
 import com.example.notificationservice.application.ports.out.NotificationSenderPort;
-import com.example.notificationservice.domain.model.NotificationRequest;
+import com.example.notificationservice.application.ports.out.UserContactInfoRepository;
+import com.example.notificationservice.domain.model.Notification;
+import com.example.notificationservice.domain.model.NotificationContent;
 import com.example.notificationservice.domain.model.NotificationType;
+import com.example.notificationservice.domain.model.UserContactInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,102 +14,110 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SendNotificationUseCaseImplTest {
 
-    private SendNotificationUseCaseImpl sendNotificationUseCase;
+    @Mock
+    private UserContactInfoRepository userContactInfoRepository;
+    @Mock
+    private NotificationSenderPort emailSender;
+    @Mock
+    private NotificationSenderPort whatsappSender;
+    @Mock
+    private NotificationSenderPort pushSender;
 
-    @Mock
-    private NotificationSenderPort emailSenderPort;
-    @Mock
-    private NotificationSenderPort whatsappSenderPort;
-    @Mock
-    private NotificationSenderPort pushSenderPort;
+    private SendNotificationUseCase sendNotificationUseCase;
 
     @BeforeEach
     void setUp() {
-        when(emailSenderPort.getType()).thenReturn(NotificationType.EMAIL);
-        when(whatsappSenderPort.getType()).thenReturn(NotificationType.WHATSAPP);
-        when(pushSenderPort.getType()).thenReturn(NotificationType.PUSH);
+        when(emailSender.getType()).thenReturn(NotificationType.EMAIL);
+        when(whatsappSender.getType()).thenReturn(NotificationType.WHATSAPP);
+        when(pushSender.getType()).thenReturn(NotificationType.PUSH);
 
-        Set<NotificationSenderPort> senderPorts = new HashSet<>();
-        senderPorts.add(emailSenderPort);
-        senderPorts.add(whatsappSenderPort);
-        senderPorts.add(pushSenderPort);
+        Set<NotificationSenderPort> senders = new HashSet<>();
+        senders.add(emailSender);
+        senders.add(whatsappSender);
+        senders.add(pushSender);
 
-        sendNotificationUseCase = new SendNotificationUseCaseImpl(senderPorts);
+        sendNotificationUseCase = new SendNotificationUseCaseImpl(userContactInfoRepository, senders);
     }
 
     @Test
-    void sendEmailNotification_shouldCallEmailSender() {
-        NotificationRequest request = new NotificationRequest(
-                "test@example.com",
-                "Test Email",
-                "This is a test email.",
-                NotificationType.EMAIL
-        );
+    void sendNotification_shouldUseUserPreferredChannel() {
+        // Given
+        String userId = "user1";
+        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@example.com", null, null, NotificationType.EMAIL);
+        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
 
-        sendNotificationUseCase.sendNotification(request);
+        Notification notification = new Notification(userId, "Test Subject", "Test Body", null);
+        NotificationContent expectedContent = new NotificationContent("Test Subject", "Test Body");
 
-        verify(emailSenderPort, times(1)).sendNotification(request);
-        verify(whatsappSenderPort, never()).sendNotification(any());
-        verify(pushSenderPort, never()).sendNotification(any());
+        // When
+        sendNotificationUseCase.sendNotification(notification);
+
+        // Then
+        verify(userContactInfoRepository).findByUserId(userId);
+        verify(emailSender).send("user1@example.com", expectedContent);
+        verify(whatsappSender, never()).send(any(), any());
+        verify(pushSender, never()).send(any(), any());
     }
 
     @Test
-    void sendWhatsappNotification_shouldCallWhatsappSender() {
-        NotificationRequest request = new NotificationRequest(
-                "+1234567890",
-                null,
-                "This is a test WhatsApp message.",
-                NotificationType.WHATSAPP
-        );
+    void sendNotification_shouldUseForcedChannel() {
+        // Given
+        String userId = "user2";
+        UserContactInfo contactInfo = new UserContactInfo(userId, "user2@example.com", null, "push-token", NotificationType.EMAIL);
+        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
 
-        sendNotificationUseCase.sendNotification(request);
+        Notification notification = new Notification(userId, "Test Subject", "Test Body", NotificationType.PUSH);
+        NotificationContent expectedContent = new NotificationContent("Test Subject", "Test Body");
 
-        verify(whatsappSenderPort, times(1)).sendNotification(request);
-        verify(emailSenderPort, never()).sendNotification(any());
-        verify(pushSenderPort, never()).sendNotification(any());
+        // When
+        sendNotificationUseCase.sendNotification(notification);
+
+        // Then
+        verify(userContactInfoRepository).findByUserId(userId);
+        verify(pushSender).send("push-token", expectedContent);
+        verify(emailSender, never()).send(any(), any());
+        verify(whatsappSender, never()).send(any(), any());
     }
 
     @Test
-    void sendPushNotification_shouldCallPushSender() {
-        NotificationRequest request = new NotificationRequest(
-                "device_token_123",
-                "Test Push",
-                "This is a test push notification.",
-                NotificationType.PUSH
-        );
+    void sendNotification_shouldThrowException_whenUserNotFound() {
+        // Given
+        String userId = "unknownUser";
+        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        Notification notification = new Notification(userId, "Subject", "Body", null);
 
-        sendNotificationUseCase.sendNotification(request);
-
-        verify(pushSenderPort, times(1)).sendNotification(request);
-        verify(emailSenderPort, never()).sendNotification(any());
-        verify(whatsappSenderPort, never()).sendNotification(any());
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
     }
 
     @Test
-    void sendNotification_withUnknownType_shouldThrowException() {
-        // This test relies on the constructor's behavior when it can't map a sender type
-        // For this mock setup, it implicitly covers cases where a sender isn't found
-        // or if the internal mapping logic fails to identify a mock based on its name.
-        // A more explicit test would involve a custom type or an unmapped mock.
+    void sendNotification_shouldThrowException_whenSenderNotFound() {
+        // Given
+        String userId = "user1";
+        // User prefers WHATSAPP, but we haven't configured a sender for it in this specific test's setup
+        UserContactInfo contactInfo = new UserContactInfo(userId, null, "+12345", null, NotificationType.WHATSAPP);
+        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
 
-        // Given our current implementation, if a type is not recognized during construction,
-        // it would throw an exception during construction. If a type is recognized
-        // during construction but no sender exists in the map for a given request.getType(),
-        // it would throw an IllegalArgumentException.
+        // Let's remove the whatsapp sender for this test
+        Set<NotificationSenderPort> senders = new HashSet<>();
+        senders.add(emailSender);
+        senders.add(pushSender);
+        sendNotificationUseCase = new SendNotificationUseCaseImpl(userContactInfoRepository, senders);
 
-        NotificationRequest request = new NotificationRequest("any", null, "any", null);
+        Notification notification = new Notification(userId, "Subject", "Body", null);
 
-        // The current constructor logic would throw if `type` was used to identify sender.
-        // The current test scenario directly tests the `sendNotification` method.
-        // If type is null, `senderMap.get(request.getType())` would return null.
-        assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(request));
+        // When & Then
+        assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
     }
 }
+

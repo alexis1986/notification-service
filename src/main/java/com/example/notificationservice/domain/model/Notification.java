@@ -1,9 +1,9 @@
 package com.example.notificationservice.domain.model;
 
-public record NotificationRequest(
-        String recipient,
+public record Notification(
+        String userId,
         String subject,
         String body,
-        NotificationType type
+        NotificationType forcedType
 ) {
 }

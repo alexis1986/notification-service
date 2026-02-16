@@ -5,9 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record SendNotificationRequestDto(
-        @NotBlank String recipient,
-        String subject, // Optional for some notification types
+        @NotBlank String userId,
+        String subject,
         @NotBlank String body,
-        @NotNull NotificationType type
+        NotificationType type // Optional: forces a specific channel
 ) {
 }
