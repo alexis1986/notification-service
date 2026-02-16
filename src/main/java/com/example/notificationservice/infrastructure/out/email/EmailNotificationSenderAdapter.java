@@ -3,12 +3,16 @@ package com.example.notificationservice.infrastructure.out.email;
 import com.example.notificationservice.application.ports.out.NotificationSenderPort;
 import com.example.notificationservice.domain.model.NotificationRequest;
 import com.example.notificationservice.domain.model.NotificationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 @Component
 public class EmailNotificationSenderAdapter implements NotificationSenderPort {
+
+    private static final Logger logger = LoggerFactory.getLogger(EmailNotificationSenderAdapter.class);
 
     private final JavaMailSender javaMailSender;
 
@@ -26,7 +30,7 @@ public class EmailNotificationSenderAdapter implements NotificationSenderPort {
         // mailMessage.setFrom("your_email@example.com"); 
 
         javaMailSender.send(mailMessage);
-        System.out.println("Email sent to: " + request.recipient() + " with subject: " + request.subject());
+        logger.info("Email sent to: {} with subject: {}", request.recipient(), request.subject());
     }
 
     @Override
