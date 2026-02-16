@@ -6,13 +6,13 @@ Este documento establece las convenciones y prácticas de desarrollo para el pro
 
 El proyecto sigue una **Arquitectura Limpia (Hexagonal)** y adhiere estrictamente a los principios **SOLID**.
 
-*   **Dominio (Core de la Aplicación):** Contiene la lógica de negocio central, entidades y reglas. Es la capa más interna e independiente.
+*   **Dominio (Core de la Aplicación):** Contiene la lógica de negocio central, entidades y reglas (`Notification`, `UserContactInfo`). Es la capa más interna e independiente.
 *   **Puertos (Interfaces):** Definen los contratos para la comunicación del dominio con el exterior.
     *   **Puertos de Entrada (Driving Ports):** Interfaces que el dominio expone para recibir comandos o consultas (ej., `SendNotificationUseCase`).
-    *   **Puertos de Salida (Driven Ports):** Interfaces que el dominio necesita para interactuar con la infraestructura (ej., `NotificationSenderPort`).
+    *   **Puertos de Salida (Driven Ports):** Interfaces que el dominio necesita para interactuar con la infraestructura (ej., `NotificationSenderPort`, `UserContactInfoRepository`).
 *   **Infraestructura (Implementación):** Implementan los puertos para conectar el dominio con tecnologías específicas.
-    *   **Infraestructura Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST).
-    *   **Infraestructura Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `WhatsappLogSenderAdapter`).
+    *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST).
+    *   **Adaptadores Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `InMemoryUserContactInfoRepository`).
 
 ### Principios SOLID Aplicados:
 
@@ -29,11 +29,12 @@ La estructura de paquetes refleja la Arquitectura Limpia:
 ```
 src/main/java/com/example/notificationservice/
 ├── infrastructure/
-│   ├── in/               # Infraestructura primarios (ej. REST controllers)
+│   ├── in/               # Adaptadores primarios (ej. REST controllers)
 │   │   └── web/
-│   └── out/              # Infraestructura secundarios (ej. Implementaciones de envío)
+│   └── out/              # Adaptadores secundarios (ej. Implementaciones de envío, persistencia)
 │       ├── email/
-│       └── log/
+│       ├── log/
+│       └── persistence/
 ├── application/          # Lógica de aplicación, casos de uso y orquestación
 │   ├── ports/
 │   │   ├── in/           # Puertos de entrada (interfaces de casos de uso)
@@ -49,9 +50,9 @@ src/main/java/com/example/notificationservice/
 ## 3. Código
 
 *   **Legibilidad:** El código debe ser claro, conciso y autoexplicativo.
-*   **Nomenclatura:** Utilizar nombres descriptivos para paquetes, clases, métodos y variables (ej. `SendNotificationUseCase`, `NotificationRequest`).
+*   **Nomenclatura:** Utilizar nombres descriptivos para paquetes, clases, métodos y variables (ej. `SendNotificationUseCase`, `Notification`).
+*   **Java Records:** Se prefiere el uso de `record` para los objetos de transferencia de datos (DTOs) y modelos inmutables, para reducir el boilerplate y promover la inmutabilidad.
 *   **Comentarios:** Usar comentarios solo cuando la complejidad del código lo justifique el *porqué* se hace algo, no el *qué*.
-*   **Lombok:** Se utiliza Lombok para reducir el boilerplate (ej. `@Value`, `@Builder`).
 
 ## 4. Estrategia de Pruebas
 
@@ -59,11 +60,10 @@ src/main/java/com/example/notificationservice/
 *   **Pruebas Unitarias (Dominio y Aplicación):**
     *   Se centran en la lógica de negocio y los casos de uso.
     *   Aisladas del framework y la infraestructura.
-    *   Uso de Mockito para simular dependencias (ej., `NotificationSenderPort`).
+    *   Uso de Mockito para simular dependencias (ej., `NotificationSenderPort`, `UserContactInfoRepository`).
     *   El objetivo es una alta cobertura de código en las capas `domain` y `application`.
 *   **Pruebas de Integración (Infraestructura y End-to-End):**
-    *   Verifican la interacción entre los componentes y con la infraestructura real (ej., controladores REST).
-    *   No son el foco principal de este PoC, pero son una parte esencial de un sistema completo.
+    *   Verifican la interacción entre los componentes y con la infraestructura real.
 
 ## 5. Escalabilidad y Extensibilidad
 
@@ -73,12 +73,12 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
 2.  **Crear una nueva implementación de `NotificationSenderPort`** (ej., `SmsNotificationSenderAdapter`).
     *   Esta nueva clase debe estar en la capa de `infrastructure.out`.
     *   Debe implementar los métodos de la interfaz `NotificationSenderPort`:
-        *   `sendNotification(NotificationRequest request)`: Contiene la lógica de envío específica para el nuevo tipo.
+        *   `send(String recipient, NotificationContent content)`: Contiene la lógica de envío específica para el nuevo tipo, recibiendo el destinatario ya resuelto.
         *   `getType()`: Debe devolver el `NotificationType` correspondiente que maneja esta implementación (ej., `return NotificationType.SMS;`).
 3.  **Anotar la nueva clase con `@Component`**.
     *   Esto permite que Spring Boot la detecte y la inyecte automáticamente en el mapa de estrategias del caso de uso.
 
-Gracias a este diseño, **no se requiere modificar** la lógica de orquestación en `SendNotificationUseCaseImpl` ni ninguna otra parte del core de la aplicación para soportar el nuevo tipo de notificación.
+Gracias a este diseño, **no se requiere modificar** la lógica de orquestación en `SendNotificationUseCaseImpl` para soportar el nuevo tipo de notificación.
 
 ## 6. Flujo de Trabajo Git y Convenciones de Commits
 
@@ -94,33 +94,15 @@ Para mantener un historial de versiones claro y facilitar la trazabilidad de los
 
 ### Convenciones de Commits (Conventional Commits)
 
-Cada mensaje de commit debe seguir la especificación de Conventional Commits, lo que permite generar historiales de cambios y versionado semántico automáticamente. La estructura básica es:
+Cada mensaje de commit debe seguir la especificación de Conventional Commits. La estructura básica es:
 
 ```
 <tipo>(<ámbito>): <descripción>
-
-[cuerpo opcional]
-
-[pie de página opcional]
 ```
 
-**Tipos (Types) comunes:**
-
-*   **`feat`**: Una nueva funcionalidad.
-*   **`fix`**: Una corrección de error.
-*   **`docs`**: Cambios en la documentación.
-*   **`style`**: Cambios que no afectan el significado del código (espacios en blanco, formato, puntos y comas omitidos, etc.).
-*   **`refactor`**: Un cambio de código que no corrige un error ni añade una característica.
-*   **`perf`**: Un cambio de código que mejora el rendimiento.
-*   **`test`**: Añadir pruebas que faltan o corregir pruebas existentes.
-*   **`build`**: Cambios que afectan el sistema de compilación o dependencias externas (ej., maven, npm).
-*   **`ci`**: Cambios en los archivos y scripts de configuración de CI.
-*   **`chore`**: Otros cambios que no modifican el código fuente o las pruebas.
-
-**Ámbito (Scope) opcional:** Proporciona un contexto adicional para el cambio (ej., `(auth)`, `(api)`, `(ui)`, `(pom)`).
+**Tipos comunes:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
 **Ejemplos:**
-
 *   `feat(users): Añade el registro de nuevos usuarios`
 *   `fix(auth): Corrige el fallo de autenticación de Google`
 *   `refactor(payment): Elimina Lombok y utiliza records de Java`
