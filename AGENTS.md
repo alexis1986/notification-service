@@ -6,12 +6,12 @@ Este documento establece las convenciones y prácticas de desarrollo para el pro
 
 El proyecto sigue una **Arquitectura Limpia (Hexagonal)** y adhiere estrictamente a los principios **SOLID**.
 
-*   **Dominio (Core de la Aplicación):** Contiene la lógica de negocio central, entidades y reglas (`Notification`, `UserContactInfo`). Es la capa más interna e independiente.
+*   **Dominio (Core de la Aplicación):** Contiene la lógica de negocio central, entidades y reglas (ej., `Notification`, `UserContactInfo`). Es la capa más interna e independiente.
 *   **Puertos (Interfaces):** Definen los contratos para la comunicación del dominio con el exterior.
     *   **Puertos de Entrada (Driving Ports):** Interfaces que el dominio expone para recibir comandos o consultas (ej., `SendNotificationUseCase`).
     *   **Puertos de Salida (Driven Ports):** Interfaces que el dominio necesita para interactuar con la infraestructura (ej., `NotificationSenderPort`, `UserContactInfoRepository`).
 *   **Infraestructura (Implementación):** Implementan los puertos para conectar el dominio con tecnologías específicas.
-    *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST).
+    *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST, `ApiKeyAuthInterceptor` para seguridad).
     *   **Adaptadores Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `InMemoryUserContactInfoRepository`).
 
 ### Principios SOLID Aplicados:
@@ -30,11 +30,12 @@ La estructura de paquetes refleja la Arquitectura Limpia:
 src/main/java/com/example/notificationservice/
 ├── infrastructure/
 │   ├── in/               # Adaptadores primarios (ej. REST controllers)
-│   │   └── web/
+│   │   ├── web/
+│   │   └── web/interceptor/ # Interceptores de Spring MVC
 │   └── out/              # Adaptadores secundarios (ej. Implementaciones de envío, persistencia)
 │       ├── email/
 │       ├── log/
-│       └── persistence/
+│       └── persistence/  # Implementaciones de repositorios
 ├── application/          # Lógica de aplicación, casos de uso y orquestación
 │   ├── ports/
 │   │   ├── in/           # Puertos de entrada (interfaces de casos de uso)
@@ -73,7 +74,7 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
 2.  **Crear una nueva implementación de `NotificationSenderPort`** (ej., `SmsNotificationSenderAdapter`).
     *   Esta nueva clase debe estar en la capa de `infrastructure.out`.
     *   Debe implementar los métodos de la interfaz `NotificationSenderPort`:
-        *   `send(String recipient, NotificationContent content)`: Contiene la lógica de envío específica para el nuevo tipo, recibiendo el destinatario ya resuelto.
+        *   `send(String recipient, NotificationContent content)`: Contiene la lógica de envío específica para el nuevo tipo, recibiendo el destinatario ya resuelto y el contenido de la notificación.
         *   `getType()`: Debe devolver el `NotificationType` correspondiente que maneja esta implementación (ej., `return NotificationType.SMS;`).
 3.  **Anotar la nueva clase con `@Component`**.
     *   Esto permite que Spring Boot la detecte y la inyecte automáticamente en el mapa de estrategias del caso de uso.
