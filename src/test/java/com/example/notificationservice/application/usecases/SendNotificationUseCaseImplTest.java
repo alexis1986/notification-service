@@ -19,6 +19,8 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,74 +52,85 @@ class SendNotificationUseCaseImplTest {
     }
 
     @Test
-    void sendNotification_shouldUseUserPreferredChannel() {
+    void sendNotification_shouldUseUserPreferredChannel_forSpecificClient() {
         // Given
+        String clientId = "client-a";
         String userId = "user1";
-        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@example.com", null, null, NotificationType.EMAIL);
-        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
+        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-a.com", null, null, NotificationType.EMAIL);
+        when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
-        Notification notification = new Notification(userId, "Test Subject", "Test Body", null);
+        Notification notification = new Notification(clientId, userId, "Test Subject", "Test Body", null);
         NotificationContent expectedContent = new NotificationContent("Test Subject", "Test Body");
 
         // When
         sendNotificationUseCase.sendNotification(notification);
 
         // Then
-        verify(userContactInfoRepository).findByUserId(userId);
-        verify(emailSender).send("user1@example.com", expectedContent);
+        verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
+        verify(emailSender).send("user1@client-a.com", expectedContent);
         verify(whatsappSender, never()).send(any(), any());
         verify(pushSender, never()).send(any(), any());
     }
 
     @Test
-    void sendNotification_shouldUseForcedChannel() {
+    void sendNotification_shouldUseForcedChannel_forSpecificClient() {
         // Given
-        String userId = "user2";
-        UserContactInfo contactInfo = new UserContactInfo(userId, "user2@example.com", null, "push-token", NotificationType.EMAIL);
-        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
+        String clientId = "client-b";
+        String userId = "user1";
+        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-b.com", null, "push-b-1", NotificationType.EMAIL); // Preferred is EMAIL, but forced to PUSH
+        when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
-        Notification notification = new Notification(userId, "Test Subject", "Test Body", NotificationType.PUSH);
+        Notification notification = new Notification(clientId, userId, "Test Subject", "Test Body", NotificationType.PUSH);
         NotificationContent expectedContent = new NotificationContent("Test Subject", "Test Body");
 
         // When
         sendNotificationUseCase.sendNotification(notification);
 
         // Then
-        verify(userContactInfoRepository).findByUserId(userId);
-        verify(pushSender).send("push-token", expectedContent);
+        verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
+        verify(pushSender).send("push-b-1", expectedContent);
         verify(emailSender, never()).send(any(), any());
         verify(whatsappSender, never()).send(any(), any());
     }
 
     @Test
-    void sendNotification_shouldThrowException_whenUserNotFound() {
+    void sendNotification_shouldThrowException_whenUserNotFoundForClient() {
         // Given
+        String clientId = "client-a";
         String userId = "unknownUser";
-        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.empty());
-        Notification notification = new Notification(userId, "Subject", "Body", null);
+        when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.empty());
+        Notification notification = new Notification(clientId, userId, "Subject", "Body", null);
 
         // When & Then
         assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
+        verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
+        verify(emailSender, never()).send(any(), any());
+        verify(whatsappSender, never()).send(any(), any());
+        verify(pushSender, never()).send(any(), any());
     }
 
     @Test
-    void sendNotification_shouldThrowException_whenSenderNotFound() {
+    void sendNotification_shouldThrowException_whenSenderNotFoundForType() {
         // Given
-        String userId = "user1";
-        // User prefers WHATSAPP, but we haven't configured a sender for it in this specific test's setup
+        String clientId = "client-a";
+        String userId = "user2";
+        // user2 prefers WHATSAPP, but we'll remove whatsappSender from the use case for this test
         UserContactInfo contactInfo = new UserContactInfo(userId, null, "+12345", null, NotificationType.WHATSAPP);
-        when(userContactInfoRepository.findByUserId(userId)).thenReturn(Optional.of(contactInfo));
+        when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
-        // Let's remove the whatsapp sender for this test
+        // Create use case without whatsappSender
         Set<NotificationSenderPort> senders = new HashSet<>();
         senders.add(emailSender);
         senders.add(pushSender);
         sendNotificationUseCase = new SendNotificationUseCaseImpl(userContactInfoRepository, senders);
 
-        Notification notification = new Notification(userId, "Subject", "Body", null);
+        Notification notification = new Notification(clientId, userId, "Subject", "Body", null);
 
         // When & Then
         assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
+        verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
+        verify(emailSender, never()).send(any(), any());
+        verify(whatsappSender, never()).send(any(), any());
+        verify(pushSender, never()).send(any(), any());
     }
 }
-
