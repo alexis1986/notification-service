@@ -34,6 +34,22 @@ Este proyecto implementa un servicio de notificaciones basado en Spring Boot 3 y
     java -jar target/notification-service-0.0.1-SNAPSHOT.jar
     ```
 
+### Configuración
+
+Toda la configuración sensible se toma de variables de entorno. Los valores por defecto permiten correr el servicio localmente sin configurar nada (H2 en memoria y un SMTP local sin autenticación, por ejemplo [Mailpit](https://mailpit.axllent.org/) en el puerto 1025).
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `MAIL_HOST` | `localhost` | Host SMTP |
+| `MAIL_PORT` | `1025` | Puerto SMTP |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | vacío | Credenciales SMTP |
+| `MAIL_SMTP_AUTH` | `false` | Habilita autenticación SMTP |
+| `MAIL_SMTP_STARTTLS` | `false` | Habilita STARTTLS |
+| `MAIL_FROM` | `no-reply@alexdevvv.com` | Remitente de los emails |
+| `DB_URL` | H2 en memoria | URL JDBC de la base de datos |
+| `DB_USERNAME` / `DB_PASSWORD` | `sa` / vacío | Credenciales de la base de datos |
+| `SQL_INIT_MODE` | `always` | `never` desactiva la carga de API Keys de demo (`data.sql`) |
+
 ### Ejecución con Docker
 
 1.  **Construir la imagen de Docker:**
@@ -49,7 +65,15 @@ Este proyecto implementa un servicio de notificaciones basado en Spring Boot 3 y
 
 Una vez que la aplicación esté ejecutándose, puedes enviar solicitudes de notificación a la API REST `/api/v1/notifications`.
 
-El servicio tiene pre-configurados 3 usuarios (`user1`, `user2`, `user3`) con diferentes preferencias de canal.
+Cada request debe incluir el header `X-API-Key`, que identifica al cliente (tenant). Sin una API Key válida el servicio responde `401`.
+
+El servicio tiene pre-configurados los siguientes datos de demo:
+
+| API Key | Cliente | Usuario | Canal preferido |
+|---|---|---|---|
+| `key-for-client-a` | `client-a` | `user1` | `EMAIL` |
+| `key-for-client-a` | `client-a` | `user2` | `WHATSAPP` |
+| `super-secret-key-for-b` | `client-b` | `user1` | `PUSH` |
 
 ### Notificación Usando Preferencia del Usuario
 
@@ -58,6 +82,7 @@ Para este ejemplo, `user2` tiene como preferencia `WHATSAPP`.
 ```bash
 curl -X POST http://localhost:8080/api/v1/notifications \
 -H "Content-Type: application/json" \
+-H "X-API-Key: key-for-client-a" \
 -d '{
     "userId": "user2",
     "subject": "Asunto Opcional",
@@ -73,6 +98,7 @@ Aunque la preferencia de `user1` es `EMAIL`, el cliente puede forzar el envío a
 ```bash
 curl -X POST http://localhost:8080/api/v1/notifications \
 -H "Content-Type: application/json" \
+-H "X-API-Key: key-for-client-a" \
 -d '{
     "userId": "user1",
     "subject": "Notificación Push",
@@ -89,10 +115,11 @@ El usuario `user1` tiene como preferencia `EMAIL`.
 ```bash
 curl -X POST http://localhost:8080/api/v1/notifications \
 -H "Content-Type: application/json" \
+-H "X-API-Key: key-for-client-a" \
 -d '{
     "userId": "user1",
     "subject": "Email para user1",
     "body": "Este es el cuerpo del mensaje de email."
 }'
 ```
-*   **Nota:** Para que el envío real de correos funcione, necesitarás configurar un servidor SMTP válido en `src/main/resources/application.properties`. Si no, verás un error 500, pero la traza en los logs del servicio mostrará que se intentó la conexión SMTP, validando que la lógica funcionó.
+*   **Nota:** Para que el envío de correos funcione necesitás un servidor SMTP accesible, configurado con las variables `MAIL_*` (ver [Configuración](#configuración)). Si no hay ninguno, el servicio responde un error 500 y los logs muestran el intento de conexión SMTP.
