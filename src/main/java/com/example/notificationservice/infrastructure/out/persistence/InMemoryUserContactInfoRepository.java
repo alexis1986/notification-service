@@ -16,31 +16,16 @@ public class InMemoryUserContactInfoRepository implements UserContactInfoReposit
 
     public InMemoryUserContactInfoRepository() {
         // Pre-populate with some mock data
-        userContactInfoMap.put("user1", new UserContactInfo(
-                "user1",
-                "user1@example.com",
-                "+1111111111",
-                "push-token-user1",
-                NotificationType.EMAIL
-        ));
-        userContactInfoMap.put("user2", new UserContactInfo(
-                "user2",
-                "user2@example.com",
-                "+2222222222",
-                "push-token-user2",
-                NotificationType.WHATSAPP
-        ));
-        userContactInfoMap.put("user3", new UserContactInfo(
-                "user3",
-                "user3@example.com",
-                "+3333333333",
-                "push-token-user3",
-                NotificationType.PUSH
-        ));
+        // User 1 has different preferences per client
+        userContactInfoMap.put("client-a:user1", new UserContactInfo("user1", "user1@client-a.com", "+1111111111", "push-a-1", NotificationType.EMAIL));
+        userContactInfoMap.put("client-b:user1", new UserContactInfo("user1", "user1@client-b.com", "+2222222222", "push-b-1", NotificationType.PUSH));
+
+        // User 2 only exists for client-a
+        userContactInfoMap.put("client-a:user2", new UserContactInfo("user2", "user2@client-a.com", "+3333333333", "push-a-2", NotificationType.WHATSAPP));
     }
 
     @Override
-    public Optional<UserContactInfo> findByUserId(String userId) {
-        return Optional.ofNullable(userContactInfoMap.get(userId));
+    public Optional<UserContactInfo> findByClientIdAndUserId(String clientId, String userId) {
+        return Optional.ofNullable(userContactInfoMap.get(String.format("%s:%s", clientId, userId)));
     }
 }

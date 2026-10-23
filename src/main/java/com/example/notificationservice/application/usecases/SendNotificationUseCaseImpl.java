@@ -27,8 +27,8 @@ public class SendNotificationUseCaseImpl implements SendNotificationUseCase {
 
     @Override
     public void sendNotification(Notification notification) {
-        UserContactInfo userContactInfo = userContactInfoRepository.findByUserId(notification.userId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + notification.userId()));
+        UserContactInfo userContactInfo = userContactInfoRepository.findByClientIdAndUserId(notification.clientId(), notification.userId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + notification.userId() + " for client: " + notification.clientId()));
 
         NotificationType notificationType = Optional.ofNullable(notification.forcedType())
                 .orElse(userContactInfo.preferredChannel());
