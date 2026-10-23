@@ -8,7 +8,7 @@
         <version>3.5.10</version> <!-- Usando la última versión estable de Spring Boot 3 -->
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.example</groupId>
+    <groupId>com.alexdevvv</groupId>
     <artifactId>notification-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>notification-service</name>

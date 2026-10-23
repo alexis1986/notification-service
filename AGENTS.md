@@ -27,7 +27,7 @@ El proyecto sigue una **Arquitectura Limpia (Hexagonal)** y adhiere estrictament
 La estructura de paquetes refleja la Arquitectura Limpia:
 
 ```
-src/main/java/com/example/notificationservice/
+src/main/java/com/alexdevvv/notifications/
 ├── infrastructure/
 │   ├── in/               # Adaptadores primarios (ej. REST controllers)
 │   │   ├── web/
