@@ -13,6 +13,8 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
 
     Optional<NotificationEntity> findByIdAndClientId(UUID id, String clientId);
 
+    Optional<NotificationEntity> findByClientIdAndIdempotencyKey(String clientId, String idempotencyKey);
+
     // SKIP LOCKED: varias réplicas del worker toman lotes disjuntos sin esperarse entre sí
     @Query(value = """
             SELECT * FROM notifications

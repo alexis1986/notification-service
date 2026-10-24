@@ -82,6 +82,18 @@ class NotificationClaimConcurrencyTest {
         }
     }
 
+    @Test
+    void concurrentRequestsWithSameIdempotencyKey_storeASingleNotification() {
+        Notification notification = new Notification("client-a", "user1", "Subject", "Body", null);
+        Instant now = Instant.now();
+        // Ambos requests pasaron el chequeo previo antes de que el otro insertara: decide el índice único
+        TrackedNotification winner = notificationRepository.save(TrackedNotification.pending(UUID.randomUUID(), notification, "order-42", now));
+        TrackedNotification loser = notificationRepository.save(TrackedNotification.pending(UUID.randomUUID(), notification, "order-42", now));
+
+        assertThat(loser.id()).isEqualTo(winner.id());
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM notifications", Integer.class)).isEqualTo(1);
+    }
+
     private static List<UUID> ids(List<TrackedNotification> notifications) {
         return notifications.stream().map(TrackedNotification::id).toList();
     }

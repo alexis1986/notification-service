@@ -31,6 +31,9 @@ public class NotificationEntity {
     @Column(name = "forced_type", length = 20)
     private NotificationType forcedType;
 
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NotificationStatus status;
@@ -62,6 +65,7 @@ public class NotificationEntity {
         entity.subject = notification.subject();
         entity.body = notification.body();
         entity.forcedType = notification.forcedType();
+        entity.idempotencyKey = tracked.idempotencyKey();
         entity.status = tracked.status();
         entity.attempts = tracked.attempts();
         entity.nextAttemptAt = tracked.nextAttemptAt();
@@ -75,6 +79,7 @@ public class NotificationEntity {
         return new TrackedNotification(
                 id,
                 new Notification(clientId, userId, subject, body, forcedType),
+                idempotencyKey,
                 status,
                 attempts,
                 nextAttemptAt,
