@@ -78,8 +78,10 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
         *   `getType()`: Debe devolver el `NotificationType` correspondiente que maneja esta implementación (ej., `return NotificationType.SMS;`).
 3.  **Anotar la nueva clase con `@Component`**.
     *   Esto permite que Spring Boot la detecte y la inyecte automáticamente en el mapa de estrategias del caso de uso.
+4.  **Registrar la dirección del usuario para el nuevo canal** en `UserContactInfo.addresses` (dato, no código).
+    *   El caso de uso resuelve el destinatario con `UserContactInfo.addressFor(type)`; si el usuario no tiene dirección para el canal, lanza `MissingContactInfoException`.
 
-Gracias a este diseño, **no se requiere modificar** la lógica de orquestación en `SendNotificationUseCaseImpl` para soportar el nuevo tipo de notificación.
+Gracias a este diseño, **no se requiere modificar** `SendNotificationUseCaseImpl` ni el modelo `UserContactInfo` para soportar el nuevo tipo de notificación.
 
 ## 6. Flujo de Trabajo Git y Convenciones de Commits
 

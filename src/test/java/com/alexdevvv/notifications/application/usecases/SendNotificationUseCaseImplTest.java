@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -59,7 +60,7 @@ class SendNotificationUseCaseImplTest {
         // Given
         String clientId = "client-a";
         String userId = "user1";
-        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-a.com", null, null, NotificationType.EMAIL);
+        UserContactInfo contactInfo = new UserContactInfo(userId, Map.of(NotificationType.EMAIL, "user1@client-a.com"), NotificationType.EMAIL);
         when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
         Notification notification = new Notification(clientId, userId, "Test Subject", "Test Body", null);
@@ -80,7 +81,9 @@ class SendNotificationUseCaseImplTest {
         // Given
         String clientId = "client-b";
         String userId = "user1";
-        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-b.com", null, "push-b-1", NotificationType.EMAIL); // Preferred is EMAIL, but forced to PUSH
+        UserContactInfo contactInfo = new UserContactInfo(userId,
+                Map.of(NotificationType.EMAIL, "user1@client-b.com", NotificationType.PUSH, "push-b-1"),
+                NotificationType.EMAIL); // Preferred is EMAIL, but forced to PUSH
         when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
         Notification notification = new Notification(clientId, userId, "Test Subject", "Test Body", NotificationType.PUSH);
@@ -117,7 +120,7 @@ class SendNotificationUseCaseImplTest {
         // Given
         String clientId = "client-a";
         String userId = "user1";
-        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-a.com", null, null, NotificationType.EMAIL);
+        UserContactInfo contactInfo = new UserContactInfo(userId, Map.of(NotificationType.EMAIL, "user1@client-a.com"), NotificationType.EMAIL);
         when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
         Notification notification = new Notification(clientId, userId, "Subject", "Body", NotificationType.WHATSAPP);
@@ -133,7 +136,7 @@ class SendNotificationUseCaseImplTest {
         String clientId = "client-a";
         String userId = "user2";
         // user2 prefers WHATSAPP, but we'll remove whatsappSender from the use case for this test
-        UserContactInfo contactInfo = new UserContactInfo(userId, null, "+12345", null, NotificationType.WHATSAPP);
+        UserContactInfo contactInfo = new UserContactInfo(userId, Map.of(NotificationType.WHATSAPP, "+12345"), NotificationType.WHATSAPP);
         when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
 
         // Create use case without whatsappSender
