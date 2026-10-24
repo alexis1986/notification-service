@@ -79,6 +79,41 @@ El servicio tiene pre-configurados los siguientes datos de demo:
 | `key-for-client-a` | `client-a` | `user2` | `WHATSAPP` |
 | `super-secret-key-for-b` | `client-b` | `user1` | `PUSH` |
 
+### Entrega Asíncrona y Consulta de Estado
+
+El `POST` valida el request (usuario, canal y dirección) y encola la notificación en PostgreSQL (patrón outbox). Responde `202 Accepted` con el header `Location` y el estado inicial:
+
+```json
+{ "id": "6f1c…", "status": "PENDING", "attempts": 0, "lastError": null, "createdAt": "…", "updatedAt": "…" }
+```
+
+Un worker la despacha en segundo plano. Si el proveedor falla, reintenta con backoff exponencial y, al agotar los intentos, la marca `FAILED`, que funciona como dead-letter. Los errores que no se resuelven reintentando, como un usuario o una dirección inexistentes, pasan directo a `FAILED`. El estado se consulta con la URL de `Location`:
+
+```bash
+curl http://localhost:8080/api/v1/notifications/<id> -H "X-API-Key: key-for-client-a"
+```
+
+Cada cliente solo ve sus propias notificaciones: el `id` de otro cliente responde `404`.
+
+### Reintentos Seguros con `Idempotency-Key`
+
+Si el cliente no sabe si su request llegó (timeout, corte de red), puede reenviarlo con el mismo header `Idempotency-Key`. Recibe la notificación original y no se encola un duplicado. Reusar la clave con un contenido distinto responde `422`. Las claves son únicas por cliente.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/notifications \
+-H "Content-Type: application/json" \
+-H "X-API-Key: key-for-client-a" \
+-H "Idempotency-Key: order-42-shipped" \
+-d '{ "userId": "user1", "subject": "Tu pedido salió", "body": "El pedido 42 está en camino." }'
+```
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `DISPATCH_INTERVAL` | `PT2S` | Cada cuánto el worker busca notificaciones pendientes |
+| `DISPATCH_BATCH_SIZE` | `20` | Notificaciones por lote |
+| `DISPATCH_MAX_ATTEMPTS` | `5` | Intentos antes de marcar `FAILED` |
+| `DISPATCH_INITIAL_BACKOFF` / `DISPATCH_MAX_BACKOFF` | `PT10S` / `PT10M` | Espera entre reintentos: se duplica en cada intento hasta el máximo |
+
 ### Notificación Usando Preferencia del Usuario
 
 Para este ejemplo, `user2` tiene como preferencia `WHATSAPP`.
@@ -126,4 +161,4 @@ curl -X POST http://localhost:8080/api/v1/notifications \
     "body": "Este es el cuerpo del mensaje de email."
 }'
 ```
-*   **Nota:** Para que el envío de correos funcione necesitás un servidor SMTP accesible, configurado con las variables `MAIL_*` (ver [Configuración](#configuración)). Si no hay ninguno, el servicio responde un error 500 y los logs muestran el intento de conexión SMTP.
+*   **Nota:** Para que el envío de correos funcione necesitás un servidor SMTP accesible, configurado con las variables `MAIL_*` (ver [Configuración](#configuración)). Si no hay ninguno, la notificación se acepta igual. El worker la reintenta y termina en `FAILED`, con el error de conexión en `lastError`.

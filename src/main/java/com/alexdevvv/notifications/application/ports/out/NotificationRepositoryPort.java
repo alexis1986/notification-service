@@ -12,9 +12,15 @@ import java.util.UUID;
  */
 public interface NotificationRepositoryPort {
 
+    /**
+     * Persiste la notificación. Si otra del mismo cliente ya usa su Idempotency-Key
+     * (dos requests simultáneos), devuelve la existente en lugar de duplicarla.
+     */
     TrackedNotification save(TrackedNotification notification);
 
     Optional<TrackedNotification> findByIdAndClientId(UUID id, String clientId);
+
+    Optional<TrackedNotification> findByClientIdAndIdempotencyKey(String clientId, String idempotencyKey);
 
     /**
      * Reserva hasta {@code limit} notificaciones pendientes con el próximo intento vencido.

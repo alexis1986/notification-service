@@ -1,5 +1,6 @@
 package com.alexdevvv.notifications.infrastructure.in.web;
 
+import com.alexdevvv.notifications.domain.exceptions.IdempotencyKeyReusedException;
 import com.alexdevvv.notifications.domain.exceptions.MissingContactInfoException;
 import com.alexdevvv.notifications.domain.exceptions.NotificationNotFoundException;
 import com.alexdevvv.notifications.domain.exceptions.UnsupportedChannelException;
@@ -38,6 +39,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler({MissingContactInfoException.class, UnsupportedChannelException.class})
     ProblemDetail handleUndeliverable(RuntimeException ex) {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Notification cannot be delivered", ex.getMessage());
+    }
+
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    ProblemDetail handleIdempotencyKeyReused(IdempotencyKeyReusedException ex) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Idempotency-Key reused", ex.getMessage());
     }
 
     private static ProblemDetail problem(HttpStatus status, String title, String detail) {
