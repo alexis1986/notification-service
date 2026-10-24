@@ -27,7 +27,7 @@ class UserContactInfoRepositoryAdapterTest {
 
         assertThat(user.userId()).isEqualTo("user1");
         assertThat(user.preferredChannel()).isEqualTo(NotificationType.EMAIL);
-        assertThat(user.addressFor(NotificationType.EMAIL)).contains("user1@client-a.com");
+        assertThat(user.addressFor(NotificationType.EMAIL)).contains("delivered+user1-client-a@resend.dev");
         assertThat(user.addressFor(NotificationType.WHATSAPP)).contains("+1111111111");
         assertThat(user.addressFor(NotificationType.PUSH)).contains("push-a-1");
     }
@@ -37,7 +37,7 @@ class UserContactInfoRepositoryAdapterTest {
         UserContactInfo user = userContactInfoRepository.findByClientIdAndUserId("client-b", "user1").orElseThrow();
 
         assertThat(user.preferredChannel()).isEqualTo(NotificationType.PUSH);
-        assertThat(user.addressFor(NotificationType.EMAIL)).contains("user1@client-b.com");
+        assertThat(user.addressFor(NotificationType.EMAIL)).contains("delivered+user1-client-b@resend.dev");
     }
 
     @Test
