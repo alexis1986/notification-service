@@ -58,3 +58,6 @@ build/
 *.tmp
 hs_err_pid*
 replay_pid*
+
+# Windows / Git Bash crash dumps
+*.stackdump
