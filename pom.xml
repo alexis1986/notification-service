@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.10</version> <!-- Usando la última versión estable de Spring Boot 3 -->
+        <version>3.5.16</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.alexdevvv</groupId>
@@ -15,6 +15,9 @@
     <description>Servicio de Notificaciones con Arquitectura Limpia</description>
     <properties>
         <java.version>21</java.version>
+        <!-- Parches de seguridad por delante del BOM de Boot 3.5.16 (CVEs reportados por Trivy). Quitar al subir de Boot. -->
+        <jackson-bom.version>2.21.8</jackson-bom.version>
+        <tomcat.version>10.1.61</tomcat.version>
     </properties>
     <dependencies>
         <dependency>
