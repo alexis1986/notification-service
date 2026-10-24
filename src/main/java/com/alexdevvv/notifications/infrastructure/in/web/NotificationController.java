@@ -1,36 +1,45 @@
 package com.alexdevvv.notifications.infrastructure.in.web;
 
-import com.alexdevvv.notifications.application.ports.in.SendNotificationUseCase;
+import com.alexdevvv.notifications.application.ports.in.GetNotificationUseCase;
+import com.alexdevvv.notifications.application.ports.in.SubmitNotificationUseCase;
 import com.alexdevvv.notifications.domain.model.Notification;
-import jakarta.servlet.http.HttpServletRequest;
+import com.alexdevvv.notifications.domain.model.TrackedNotification;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.Optional;
+import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 public class NotificationController {
 
-    private final SendNotificationUseCase sendNotificationUseCase;
+    // Lo setea ApiKeyAuthInterceptor después de validar la API Key
+    private static final String CLIENT_ID = "clientId";
 
-    public NotificationController(SendNotificationUseCase sendNotificationUseCase) {
-        this.sendNotificationUseCase = sendNotificationUseCase;
+    private final SubmitNotificationUseCase submitNotificationUseCase;
+    private final GetNotificationUseCase getNotificationUseCase;
+
+    public NotificationController(SubmitNotificationUseCase submitNotificationUseCase, GetNotificationUseCase getNotificationUseCase) {
+        this.submitNotificationUseCase = submitNotificationUseCase;
+        this.getNotificationUseCase = getNotificationUseCase;
     }
 
+    /**
+     * Acepta la notificación y la encola: la entrega es asíncrona y su estado se consulta en la URL de Location.
+     */
     @PostMapping
-    public ResponseEntity<Void> sendNotification(
-            @Valid @RequestBody SendNotificationRequestDto dto,
-            HttpServletRequest request) {
-
-        String clientId = Optional.ofNullable(request.getAttribute("clientId"))
-                .map(Object::toString)
-                .orElseThrow(() -> new IllegalStateException("Client ID not found in request attributes."));
+    public ResponseEntity<NotificationResponseDto> sendNotification(
+            @RequestAttribute(CLIENT_ID) String clientId,
+            @Valid @RequestBody SendNotificationRequestDto dto) {
 
         Notification notification = new Notification(
                 clientId,
@@ -40,7 +49,16 @@ public class NotificationController {
                 dto.type()
         );
 
-        sendNotificationUseCase.sendNotification(notification);
-        return new ResponseEntity<>(HttpStatus.ACCEPTED);
+        TrackedNotification tracked = submitNotificationUseCase.submit(notification);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(tracked.id())
+                .toUri();
+        return ResponseEntity.accepted().location(location).body(NotificationResponseDto.from(tracked));
+    }
+
+    @GetMapping("/{id}")
+    public NotificationResponseDto getNotification(@RequestAttribute(CLIENT_ID) String clientId, @PathVariable UUID id) {
+        return NotificationResponseDto.from(getNotificationUseCase.get(clientId, id));
     }
 }
