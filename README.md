@@ -50,6 +50,8 @@ Toda la configuración sensible se toma de variables de entorno. Los valores por
 | `MAIL_SMTP_AUTH` | `false` | Habilita autenticación SMTP |
 | `MAIL_SMTP_STARTTLS` | `false` | Habilita STARTTLS |
 | `MAIL_FROM` | `no-reply@alexdevvv.com` | Remitente de los emails |
+| `MAIL_PROVIDER` | `smtp` | `smtp` o `resend` (API HTTP de [Resend](https://resend.com), para entornos con el SMTP saliente bloqueado, como DigitalOcean) |
+| `RESEND_API_KEY` | vacío | API Key de Resend (requerida con `MAIL_PROVIDER=resend`) |
 | `DB_URL` | `jdbc:postgresql://localhost:5432/notifications` | URL JDBC de PostgreSQL |
 | `DB_USERNAME` / `DB_PASSWORD` | `notifications` / `notifications` | Credenciales de la base de datos |
 | `FLYWAY_LOCATIONS` | `classpath:db/migration,classpath:db/demo` | Con `classpath:db/migration` solo se aplica el esquema, sin las API Keys de demo |

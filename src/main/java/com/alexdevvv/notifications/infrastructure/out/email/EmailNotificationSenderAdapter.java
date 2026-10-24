@@ -7,12 +7,14 @@ import com.alexdevvv.notifications.domain.model.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "notifications.mail.provider", havingValue = "smtp", matchIfMissing = true)
 public class EmailNotificationSenderAdapter implements NotificationSenderPort {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailNotificationSenderAdapter.class);
