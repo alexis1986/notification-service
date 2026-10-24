@@ -54,6 +54,16 @@ Toda la configuración sensible se toma de variables de entorno. Los valores por
 | `DB_USERNAME` / `DB_PASSWORD` | `notifications` / `notifications` | Credenciales de la base de datos |
 | `FLYWAY_LOCATIONS` | `classpath:db/migration,classpath:db/demo` | Con `classpath:db/migration` solo se aplica el esquema, sin las API Keys de demo |
 
+### Entorno Completo con Docker Compose
+
+Levanta el servicio con el perfil `prod`, PostgreSQL y [Mailpit](https://mailpit.axllent.org/) (los emails enviados se ven en `http://localhost:8025`):
+
+```bash
+docker compose up --build
+```
+
+El perfil `prod` exige `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` sin defaults, no carga los datos de demo (el compose los habilita explícitamente con `FLYWAY_LOCATIONS`), respeta los headers `X-Forwarded-*` del Ingress y emite logs JSON en formato ECS.
+
 ### Ejecución con Docker
 
 1.  **Construir la imagen de Docker:**
