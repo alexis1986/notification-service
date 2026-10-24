@@ -3,6 +3,9 @@ package com.alexdevvv.notifications.application.usecases;
 import com.alexdevvv.notifications.application.ports.in.SendNotificationUseCase;
 import com.alexdevvv.notifications.application.ports.out.NotificationSenderPort;
 import com.alexdevvv.notifications.application.ports.out.UserContactInfoRepository;
+import com.alexdevvv.notifications.domain.exceptions.MissingContactInfoException;
+import com.alexdevvv.notifications.domain.exceptions.UnsupportedChannelException;
+import com.alexdevvv.notifications.domain.exceptions.UserNotFoundException;
 import com.alexdevvv.notifications.domain.model.Notification;
 import com.alexdevvv.notifications.domain.model.NotificationContent;
 import com.alexdevvv.notifications.domain.model.NotificationType;
@@ -28,16 +31,19 @@ public class SendNotificationUseCaseImpl implements SendNotificationUseCase {
     @Override
     public void sendNotification(Notification notification) {
         UserContactInfo userContactInfo = userContactInfoRepository.findByClientIdAndUserId(notification.clientId(), notification.userId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + notification.userId() + " for client: " + notification.clientId()));
+                .orElseThrow(() -> new UserNotFoundException(notification.clientId(), notification.userId()));
 
         NotificationType notificationType = Optional.ofNullable(notification.forcedType())
                 .orElse(userContactInfo.preferredChannel());
 
-        String recipient = getRecipientForType(userContactInfo, notificationType);
-
         NotificationSenderPort sender = Optional.ofNullable(senders.get(notificationType))
-                .orElseThrow(() -> new IllegalArgumentException("No sender found for notification type: " + notificationType));
-        
+                .orElseThrow(() -> new UnsupportedChannelException(notificationType));
+
+        String recipient = getRecipientForType(userContactInfo, notificationType);
+        if (recipient == null || recipient.isBlank()) {
+            throw new MissingContactInfoException(userContactInfo.userId(), notificationType);
+        }
+
         sender.send(recipient, new NotificationContent(notification.subject(), notification.body()));
     }
 

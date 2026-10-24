@@ -6,8 +6,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.Optional;
-
 @Component
 public class ApiKeyAuthInterceptor implements HandlerInterceptor {
 
@@ -19,22 +17,17 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String apiKey = request.getHeader(API_KEY_HEADER);
 
         if (apiKey == null || apiKey.isBlank()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing API Key");
-            return false;
+            throw new InvalidApiKeyException("Missing API Key");
         }
 
-        Optional<String> clientId = apiKeyRepositoryPort.findClientIdByKey(apiKey);
+        String clientId = apiKeyRepositoryPort.findClientIdByKey(apiKey)
+                .orElseThrow(() -> new InvalidApiKeyException("Invalid API Key"));
 
-        if (clientId.isEmpty()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid API Key");
-            return false;
-        }
-
-        request.setAttribute("clientId", clientId.get());
+        request.setAttribute("clientId", clientId);
         return true;
     }
 }
