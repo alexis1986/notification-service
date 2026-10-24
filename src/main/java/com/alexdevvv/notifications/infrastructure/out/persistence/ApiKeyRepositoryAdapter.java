@@ -16,9 +16,9 @@ public class ApiKeyRepositoryAdapter implements ApiKeyRepositoryPort {
     }
 
     @Override
-    @Cacheable(value = "apiKeys", key = "#apiKey")
+    @Cacheable(value = "apiKeys", key = "T(com.alexdevvv.notifications.infrastructure.out.persistence.ApiKeyHasher).sha256(#apiKey)")
     public Optional<String> findClientIdByKey(String apiKey) {
-        return jpaApiKeyRepository.findByApiKey(apiKey)
+        return jpaApiKeyRepository.findByKeyHash(ApiKeyHasher.sha256(apiKey))
                 .map(ApiKeyEntity::getClientId);
     }
 }
