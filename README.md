@@ -71,6 +71,8 @@ Una vez que la aplicación esté ejecutándose, puedes enviar solicitudes de not
 
 Cada request debe incluir el header `X-API-Key`, que identifica al cliente (tenant). Sin una API Key válida el servicio responde `401`.
 
+El contrato OpenAPI está en `http://localhost:8080/v3/api-docs` y la consola interactiva en `http://localhost:8080/swagger-ui.html` (botón *Authorize* para cargar la API Key).
+
 El servicio tiene pre-configurados los siguientes datos de demo:
 
 | API Key | Cliente | Usuario | Canal preferido |
