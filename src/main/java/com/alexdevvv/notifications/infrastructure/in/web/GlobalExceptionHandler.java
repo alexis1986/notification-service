@@ -1,12 +1,10 @@
 package com.alexdevvv.notifications.infrastructure.in.web;
 
 import com.alexdevvv.notifications.domain.exceptions.MissingContactInfoException;
-import com.alexdevvv.notifications.domain.exceptions.NotificationDeliveryException;
+import com.alexdevvv.notifications.domain.exceptions.NotificationNotFoundException;
 import com.alexdevvv.notifications.domain.exceptions.UnsupportedChannelException;
 import com.alexdevvv.notifications.domain.exceptions.UserNotFoundException;
 import com.alexdevvv.notifications.infrastructure.in.web.interceptor.InvalidApiKeyException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,11 +15,10 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * Traduce las excepciones a respuestas RFC 9457 (application/problem+json).
  * Extender ResponseEntityExceptionHandler cubre además los errores propios de Spring MVC,
  * como la validación del body (400).
+ * Las fallas del proveedor no llegan acá: la entrega es asíncrona y se reflejan en el estado de la notificación.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(InvalidApiKeyException.class)
     ProblemDetail handleInvalidApiKey(InvalidApiKeyException ex) {
@@ -33,15 +30,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "User not found", ex.getMessage());
     }
 
-    @ExceptionHandler({MissingContactInfoException.class, UnsupportedChannelException.class})
-    ProblemDetail handleUndeliverable(RuntimeException ex) {
-        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Notification cannot be delivered", ex.getMessage());
+    @ExceptionHandler(NotificationNotFoundException.class)
+    ProblemDetail handleNotificationNotFound(NotificationNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "Notification not found", ex.getMessage());
     }
 
-    @ExceptionHandler(NotificationDeliveryException.class)
-    ProblemDetail handleDeliveryFailure(NotificationDeliveryException ex) {
-        logger.error("Notification delivery failed", ex);
-        return problem(HttpStatus.BAD_GATEWAY, "Notification delivery failed", ex.getMessage());
+    @ExceptionHandler({MissingContactInfoException.class, UnsupportedChannelException.class})
+    ProblemDetail handleUndeliverable(RuntimeException ex) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Notification cannot be delivered", ex.getMessage());
     }
 
     private static ProblemDetail problem(HttpStatus status, String title, String detail) {

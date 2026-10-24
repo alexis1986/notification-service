@@ -8,16 +8,16 @@ El proyecto sigue una **Arquitectura Limpia (Hexagonal)** y adhiere estrictament
 
 *   **Dominio (Core de la Aplicación):** Contiene la lógica de negocio central, entidades y reglas (ej., `Notification`, `UserContactInfo`). Es la capa más interna e independiente.
 *   **Puertos (Interfaces):** Definen los contratos para la comunicación del dominio con el exterior.
-    *   **Puertos de Entrada (Driving Ports):** Interfaces que el dominio expone para recibir comandos o consultas (ej., `SendNotificationUseCase`).
+    *   **Puertos de Entrada (Driving Ports):** Interfaces que el dominio expone para recibir comandos o consultas (ej., `SubmitNotificationUseCase`, `DispatchNotificationsUseCase`).
     *   **Puertos de Salida (Driven Ports):** Interfaces que el dominio necesita para interactuar con la infraestructura (ej., `NotificationSenderPort`, `UserContactInfoRepository`).
 *   **Infraestructura (Implementación):** Implementan los puertos para conectar el dominio con tecnologías específicas.
-    *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST, `ApiKeyAuthInterceptor` para seguridad).
+    *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST, `ApiKeyAuthInterceptor` para seguridad, `NotificationDispatchScheduler` para el despacho).
     *   **Adaptadores Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `InMemoryUserContactInfoRepository`).
 
 ### Principios SOLID Aplicados:
 
 *   **Single Responsibility Principle (SRP):** Cada clase tiene una única razón para cambiar (ej., un caso de uso se encarga de una única funcionalidad).
-*   **Open/Closed Principle (OCP):** Las entidades de software deben estar abiertas a la extensión, pero cerradas a la modificación (ej., añadir un nuevo tipo de notificación no requiere cambiar el `SendNotificationUseCase`).
+*   **Open/Closed Principle (OCP):** Las entidades de software deben estar abiertas a la extensión, pero cerradas a la modificación (ej., añadir un nuevo tipo de notificación no requiere cambiar `RecipientResolver` ni los casos de uso).
 *   **Liskov Substitution Principle (LSP):** Los objetos de un programa deben ser reemplazables por instancias de sus subtipos sin alterar la corrección del programa.
 *   **Interface Segregation Principle (ISP):** Los clientes no deben ser forzados a depender de interfaces que no utilizan.
 *   **Dependency Inversion Principle (DIP):** Las dependencias del código fuente deben dirigirse hacia abstracciones (Puertos), no hacia detalles (Infraestructura).
@@ -31,7 +31,8 @@ src/main/java/com/alexdevvv/notifications/
 ├── infrastructure/
 │   ├── in/               # Adaptadores primarios (ej. REST controllers)
 │   │   ├── web/
-│   │   └── web/interceptor/ # Interceptores de Spring MVC
+│   │   ├── web/interceptor/ # Interceptores de Spring MVC
+│   │   └── scheduler/    # Disparadores programados (despacho del outbox)
 │   └── out/              # Adaptadores secundarios (ej. Implementaciones de envío, persistencia)
 │       ├── email/
 │       ├── log/
@@ -51,7 +52,7 @@ src/main/java/com/alexdevvv/notifications/
 ## 3. Código
 
 *   **Legibilidad:** El código debe ser claro, conciso y autoexplicativo.
-*   **Nomenclatura:** Utilizar nombres descriptivos para paquetes, clases, métodos y variables (ej. `SendNotificationUseCase`, `Notification`).
+*   **Nomenclatura:** Utilizar nombres descriptivos para paquetes, clases, métodos y variables (ej. `SubmitNotificationUseCase`, `Notification`).
 *   **Java Records:** Se prefiere el uso de `record` para los objetos de transferencia de datos (DTOs) y modelos inmutables, para reducir el boilerplate y promover la inmutabilidad.
 *   **Comentarios:** Usar comentarios solo cuando la complejidad del código lo justifique el *porqué* se hace algo, no el *qué*.
 
@@ -81,7 +82,7 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
 4.  **Registrar la dirección del usuario para el nuevo canal** en `UserContactInfo.addresses` (dato, no código).
     *   El caso de uso resuelve el destinatario con `UserContactInfo.addressFor(type)`; si el usuario no tiene dirección para el canal, lanza `MissingContactInfoException`.
 
-Gracias a este diseño, **no se requiere modificar** `SendNotificationUseCaseImpl` ni el modelo `UserContactInfo` para soportar el nuevo tipo de notificación.
+Gracias a este diseño, **no se requiere modificar** `RecipientResolver`, los casos de uso ni el modelo `UserContactInfo` para soportar el nuevo tipo de notificación.
 
 ## 6. Flujo de Trabajo Git y Convenciones de Commits
 

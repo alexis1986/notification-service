@@ -3,18 +3,15 @@ package com.alexdevvv.notifications.infrastructure.in.web;
 import com.alexdevvv.notifications.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.mail.MailSendException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import java.util.UUID;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -30,9 +27,6 @@ class ErrorHandlingTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockitoBean
-    private JavaMailSender javaMailSender;
 
     @Test
     void whenUserDoesNotExist_thenReturnsNotFoundProblem() throws Exception {
@@ -67,15 +61,16 @@ class ErrorHandlingTest {
     }
 
     @Test
-    void whenProviderFails_thenReturnsBadGatewayProblem() throws Exception {
-        doThrow(new MailSendException("SMTP down")).when(javaMailSender).send(any(SimpleMailMessage.class));
+    void whenQueryingStatusWithoutApiKey_thenReturnsUnauthorizedProblem() throws Exception {
+        mockMvc.perform(get(ENDPOINT + "/" + UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
 
-        mockMvc.perform(post(ENDPOINT)
-                        .header("X-API-Key", VALID_KEY)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":\"user1\", \"body\":\"Test\"}"))
-                .andExpect(status().isBadGateway())
+    @Test
+    void whenNotificationDoesNotExist_thenReturnsNotFoundProblem() throws Exception {
+        mockMvc.perform(get(ENDPOINT + "/" + UUID.randomUUID()).header("X-API-Key", VALID_KEY))
+                .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Notification delivery failed"));
+                .andExpect(jsonPath("$.title").value("Notification not found"));
     }
 }

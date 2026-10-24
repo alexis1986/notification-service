@@ -17,6 +17,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(apiKeyAuthInterceptor)
-                .addPathPatterns("/api/v1/notifications");
+                .addPathPatterns("/api/v1/notifications", "/api/v1/notifications/**");
     }
 }
