@@ -1,11 +1,13 @@
 package com.alexdevvv.notifications.infrastructure.out.email;
 
 import com.alexdevvv.notifications.application.ports.out.NotificationSenderPort;
+import com.alexdevvv.notifications.domain.exceptions.NotificationDeliveryException;
 import com.alexdevvv.notifications.domain.model.NotificationContent;
 import com.alexdevvv.notifications.domain.model.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -32,7 +34,11 @@ public class EmailNotificationSenderAdapter implements NotificationSenderPort {
         mailMessage.setSubject(content.subject());
         mailMessage.setText(content.body());
 
-        javaMailSender.send(mailMessage);
+        try {
+            javaMailSender.send(mailMessage);
+        } catch (MailException e) {
+            throw new NotificationDeliveryException(NotificationType.EMAIL, e);
+        }
         logger.info("Email sent to: {} with subject: {}", recipient, content.subject());
     }
 

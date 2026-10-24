@@ -3,6 +3,9 @@ package com.alexdevvv.notifications.application.usecases;
 import com.alexdevvv.notifications.application.ports.in.SendNotificationUseCase;
 import com.alexdevvv.notifications.application.ports.out.NotificationSenderPort;
 import com.alexdevvv.notifications.application.ports.out.UserContactInfoRepository;
+import com.alexdevvv.notifications.domain.exceptions.MissingContactInfoException;
+import com.alexdevvv.notifications.domain.exceptions.UnsupportedChannelException;
+import com.alexdevvv.notifications.domain.exceptions.UserNotFoundException;
 import com.alexdevvv.notifications.domain.model.Notification;
 import com.alexdevvv.notifications.domain.model.NotificationContent;
 import com.alexdevvv.notifications.domain.model.NotificationType;
@@ -102,11 +105,26 @@ class SendNotificationUseCaseImplTest {
         Notification notification = new Notification(clientId, userId, "Subject", "Body", null);
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
+        assertThrows(UserNotFoundException.class, () -> sendNotificationUseCase.sendNotification(notification));
         verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
         verify(emailSender, never()).send(any(), any());
         verify(whatsappSender, never()).send(any(), any());
         verify(pushSender, never()).send(any(), any());
+    }
+
+    @Test
+    void sendNotification_shouldThrowException_whenUserHasNoContactForChannel() {
+        // Given
+        String clientId = "client-a";
+        String userId = "user1";
+        UserContactInfo contactInfo = new UserContactInfo(userId, "user1@client-a.com", null, null, NotificationType.EMAIL);
+        when(userContactInfoRepository.findByClientIdAndUserId(eq(clientId), eq(userId))).thenReturn(Optional.of(contactInfo));
+
+        Notification notification = new Notification(clientId, userId, "Subject", "Body", NotificationType.WHATSAPP);
+
+        // When & Then
+        assertThrows(MissingContactInfoException.class, () -> sendNotificationUseCase.sendNotification(notification));
+        verify(whatsappSender, never()).send(any(), any());
     }
 
     @Test
@@ -127,7 +145,7 @@ class SendNotificationUseCaseImplTest {
         Notification notification = new Notification(clientId, userId, "Subject", "Body", null);
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> sendNotificationUseCase.sendNotification(notification));
+        assertThrows(UnsupportedChannelException.class, () -> sendNotificationUseCase.sendNotification(notification));
         verify(userContactInfoRepository).findByClientIdAndUserId(eq(clientId), eq(userId));
         verify(emailSender, never()).send(any(), any());
         verify(whatsappSender, never()).send(any(), any());
