@@ -13,15 +13,15 @@ public class ApiKeyEntity {
     @Column(name = "client_id", nullable = false)
     private String clientId;
 
-    @Column(name = "api_key", nullable = false, unique = true)
-    private String apiKey;
+    @Column(name = "key_hash", nullable = false, unique = true, length = 64)
+    private String keyHash;
 
     public ApiKeyEntity() {
     }
 
-    public ApiKeyEntity(String clientId, String apiKey) {
+    public ApiKeyEntity(String clientId, String keyHash) {
         this.clientId = clientId;
-        this.apiKey = apiKey;
+        this.keyHash = keyHash;
     }
 
     public Long getId() {
@@ -32,15 +32,11 @@ public class ApiKeyEntity {
         return clientId;
     }
 
-    public String getApiKey() {
-        return apiKey;
+    public String getKeyHash() {
+        return keyHash;
     }
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
     }
 }
