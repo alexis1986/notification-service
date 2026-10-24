@@ -39,19 +39,9 @@ public class SendNotificationUseCaseImpl implements SendNotificationUseCase {
         NotificationSenderPort sender = Optional.ofNullable(senders.get(notificationType))
                 .orElseThrow(() -> new UnsupportedChannelException(notificationType));
 
-        String recipient = getRecipientForType(userContactInfo, notificationType);
-        if (recipient == null || recipient.isBlank()) {
-            throw new MissingContactInfoException(userContactInfo.userId(), notificationType);
-        }
+        String recipient = userContactInfo.addressFor(notificationType)
+                .orElseThrow(() -> new MissingContactInfoException(userContactInfo.userId(), notificationType));
 
         sender.send(recipient, new NotificationContent(notification.subject(), notification.body()));
-    }
-
-    private String getRecipientForType(UserContactInfo userContactInfo, NotificationType type) {
-        return switch (type) {
-            case EMAIL -> userContactInfo.email();
-            case WHATSAPP -> userContactInfo.phoneNumber();
-            case PUSH -> userContactInfo.pushToken();
-        };
     }
 }
