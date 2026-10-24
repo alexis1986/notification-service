@@ -1,0 +1,9 @@
+target/
+.git/
+.github/
+.idea/
+*.iml
+*.stackdump
+compose.yaml
+README.md
+AGENTS.md
