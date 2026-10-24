@@ -12,7 +12,7 @@ El proyecto sigue una **Arquitectura Limpia (Hexagonal)** y adhiere estrictament
     *   **Puertos de Salida (Driven Ports):** Interfaces que el dominio necesita para interactuar con la infraestructura (ej., `NotificationSenderPort`, `UserContactInfoRepository`).
 *   **Infraestructura (Implementación):** Implementan los puertos para conectar el dominio con tecnologías específicas.
     *   **Adaptadores Primarios (Driving Adapters):** Implementan puertos de entrada (ej., `NotificationController` para REST, `ApiKeyAuthInterceptor` para seguridad, `NotificationDispatchScheduler` para el despacho).
-    *   **Adaptadores Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `InMemoryUserContactInfoRepository`).
+    *   **Adaptadores Secundarios (Driven Adapters):** Implementan puertos de salida (ej., `EmailNotificationSenderAdapter`, `UserContactInfoRepositoryAdapter`).
 
 ### Principios SOLID Aplicados:
 
@@ -79,7 +79,7 @@ El uso del patrón Estrategia, junto con la inyección de dependencias de Spring
         *   `getType()`: Debe devolver el `NotificationType` correspondiente que maneja esta implementación (ej., `return NotificationType.SMS;`).
 3.  **Anotar la nueva clase con `@Component`**.
     *   Esto permite que Spring Boot la detecte y la inyecte automáticamente en el mapa de estrategias del caso de uso.
-4.  **Registrar la dirección del usuario para el nuevo canal** en `UserContactInfo.addresses` (dato, no código).
+4.  **Registrar la dirección del usuario para el nuevo canal** como una fila en la tabla `user_addresses` (dato, no código: no requiere migración).
     *   El caso de uso resuelve el destinatario con `UserContactInfo.addressFor(type)`; si el usuario no tiene dirección para el canal, lanza `MissingContactInfoException`.
 
 Gracias a este diseño, **no se requiere modificar** `RecipientResolver`, los casos de uso ni el modelo `UserContactInfo` para soportar el nuevo tipo de notificación.
