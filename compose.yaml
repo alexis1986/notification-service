@@ -1,0 +1,44 @@
+# Entorno completo local: servicio con perfil prod + PostgreSQL + Mailpit (UI de emails en http://localhost:8025)
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notifications
+      POSTGRES_PASSWORD: notifications
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/notifications
+      DB_USERNAME: notifications
+      DB_PASSWORD: notifications
+      # Entorno de demo: se cargan las API Keys y usuarios de ejemplo
+      FLYWAY_LOCATIONS: classpath:db/migration,classpath:db/demo
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:
