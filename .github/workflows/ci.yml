@@ -47,11 +47,12 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: alexis1986/security-workflows/.github/workflows/sca.yml@main
+    uses: alexis1986/security-workflows/.github/workflows/sca.yml@feat/sca-maven-cache
     with:
       mode: report
       upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
       artifact-name: sca-report
+      maven-cache: true
 
   sast:
     name: SAST
