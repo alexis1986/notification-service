@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: corretto
+          java-version: '21'
+          cache: maven
+
+      - name: Build and test
+        run: ./mvnw -B verify
+
+  secrets:
+    name: Secrets
+    permissions:
+      contents: read
+      security-events: write
+    uses: alexis1986/security-workflows/.github/workflows/secrets.yml@main
+    with:
+      mode: report
+      upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      artifact-name: secrets-report
+
+  sca:
+    name: Dependencies
+    permissions:
+      contents: read
+      security-events: write
+    uses: alexis1986/security-workflows/.github/workflows/sca.yml@main
+    with:
+      mode: report
+      upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      artifact-name: sca-report
+      maven-cache: true
+
+  sast:
+    name: SAST
+    permissions:
+      contents: read
+      security-events: write
+    uses: alexis1986/security-workflows/.github/workflows/sast.yml@main
+    with:
+      mode: report
+      upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      artifact-name: sast-report
+
+  iac:
+    name: IaC
+    permissions:
+      contents: read
+      security-events: write
+    uses: alexis1986/security-workflows/.github/workflows/iac.yml@main
+    with:
+      mode: report
+      upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      artifact-name: iac-report
+
+  # Construye la imagen, la escanea y, solo en push a main, publica esa misma
+  # imagen escaneada (sin rebuild). En PRs y develop construye y escanea sin publicar.
+  image-scan:
+    name: Image scan and push
+    needs: [build, secrets, sca, sast, iac]
+    permissions:
+      contents: read
+      security-events: write
+      packages: write
+    uses: alexis1986/security-workflows/.github/workflows/image-scan.yml@main
+    with:
+      mode: report
+      upload-sarif: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      image-name: notification-service
+      artifact-name: image-report
+      push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      push-tags: |
+        ghcr.io/alexis1986/notification-service:latest
+        ghcr.io/alexis1986/notification-service:sha-${{ github.sha }}
+
+  sign-sbom:
+    name: SBOM and signature
+    needs: image-scan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: alexis1986/security-workflows/.github/workflows/sign-sbom.yml@main
+    with:
+      image-ref: ghcr.io/alexis1986/notification-service@${{ needs.image-scan.outputs.digest }}
+      signing: keyless
