@@ -16,27 +16,31 @@ Este proyecto implementa un servicio de notificaciones basado en Spring Boot 3 y
 ## Tecnologías Utilizadas
 
 *   **Java 21 (Amazon Corretto)**
-*   **Spring Boot 3.5.10**
+*   **Spring Boot 4.1**
+*   **PostgreSQL 17 + Flyway**
 *   **Maven**
 *   **Docker**
-*   **JUnit 5 & Mockito**
+*   **JUnit 5, Mockito & Testcontainers**
 
 ## Construcción y Ejecución
 
+Los tests de integración y la ejecución local usan Testcontainers: solo hace falta Docker corriendo.
+
 ### Ejecución Local
 
-1.  **Construir el proyecto con Maven:**
+1.  **Construir el proyecto y correr los tests:**
     ```bash
-    ./mvnw clean install
+    ./mvnw clean verify
     ```
-2.  **Ejecutar la aplicación Spring Boot:**
+2.  **Levantar la aplicación con un PostgreSQL efímero en Docker:**
     ```bash
-    java -jar target/notification-service-0.0.1-SNAPSHOT.jar
+    ./mvnw spring-boot:test-run
     ```
+    Para usar una base existente, ejecutar el jar con `DB_URL`, `DB_USERNAME` y `DB_PASSWORD`.
 
 ### Configuración
 
-Toda la configuración sensible se toma de variables de entorno. Los valores por defecto permiten correr el servicio localmente sin configurar nada (H2 en memoria y un SMTP local sin autenticación, por ejemplo [Mailpit](https://mailpit.axllent.org/) en el puerto 1025).
+Toda la configuración sensible se toma de variables de entorno. Los valores por defecto apuntan a un PostgreSQL local (`localhost:5432/notifications`) y a un SMTP local sin autenticación, por ejemplo [Mailpit](https://mailpit.axllent.org/) en el puerto 1025. El esquema lo crea Flyway al arrancar.
 
 | Variable | Default | Descripción |
 |---|---|---|
@@ -46,9 +50,9 @@ Toda la configuración sensible se toma de variables de entorno. Los valores por
 | `MAIL_SMTP_AUTH` | `false` | Habilita autenticación SMTP |
 | `MAIL_SMTP_STARTTLS` | `false` | Habilita STARTTLS |
 | `MAIL_FROM` | `no-reply@alexdevvv.com` | Remitente de los emails |
-| `DB_URL` | H2 en memoria | URL JDBC de la base de datos |
-| `DB_USERNAME` / `DB_PASSWORD` | `sa` / vacío | Credenciales de la base de datos |
-| `SQL_INIT_MODE` | `always` | `never` desactiva la carga de API Keys de demo (`data.sql`) |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/notifications` | URL JDBC de PostgreSQL |
+| `DB_USERNAME` / `DB_PASSWORD` | `notifications` / `notifications` | Credenciales de la base de datos |
+| `FLYWAY_LOCATIONS` | `classpath:db/migration,classpath:db/demo` | Con `classpath:db/migration` solo se aplica el esquema, sin las API Keys de demo |
 
 ### Ejecución con Docker
 

@@ -1,5 +1,6 @@
 package com.alexdevvv.notifications.infrastructure.in.web;
 
+import com.alexdevvv.notifications.TestcontainersConfiguration;
 import com.alexdevvv.notifications.application.ports.out.ApiKeyRepositoryPort;
 import com.alexdevvv.notifications.infrastructure.out.persistence.ApiKeyEntity;
 import com.alexdevvv.notifications.infrastructure.out.persistence.ApiKeyHasher;
@@ -11,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
@@ -20,6 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 @AutoConfigureMockMvc
 class ApiKeyAuthTest {
 
