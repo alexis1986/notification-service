@@ -116,7 +116,7 @@ Cada decisión con trade-offs está registrada como ADR en [`docs/adr`](docs/adr
 
 - **Patrón outbox.** El `POST` solo valida y persiste; nunca habla con el proveedor. Si la base confirmó el `INSERT`, la notificación no se pierde.
 - **Reintentos con backoff exponencial.** La espera arranca en 10 s y se duplica en cada intento, con tope de 10 min; son 5 intentos en total. Después la notificación queda `FAILED`, que actúa como dead-letter consultable.
-- **Errores permanentes vs. transitorios.** Si el usuario o su dirección no existen, la notificación va directo a `FAILED`, porque reintentar no lo arregla. Cualquier otro error se reintenta.
+- **Errores permanentes vs. transitorios.** Si el usuario o su dirección no existen, o el proveedor rechaza el contenido (`400`/`422`), la notificación va directo a `FAILED`, porque reintentar no lo arregla. Las caídas, los timeouts, el rate limit y los errores de credenciales se reintentan.
 - **Varias réplicas sin coordinación.** `FOR UPDATE SKIP LOCKED` reparte lotes disjuntos entre workers. Está probado con un test de concurrencia sobre PostgreSQL real.
 - **Reintentos del cliente sin duplicados.** Con el header `Idempotency-Key`, la carrera entre dos requests iguales la resuelve un índice único parcial en la base.
 - **Probes de Kubernetes.** Liveness no depende de la base, porque reiniciar el pod no la arregla. Readiness sí, para sacar el pod del balanceo mientras PostgreSQL no responde.
@@ -242,6 +242,5 @@ Las convenciones de arquitectura, paquetes y commits están en [`AGENTS.md`](AGE
 ## Limitaciones conocidas
 
 - WhatsApp y Push están simulados: se registran en el log.
-- Un `4xx` del proveedor (por ejemplo, un email mal formado) se reintenta como si fuera transitorio, aunque con tope de 5 intentos.
 - Las `Idempotency-Key` no expiran ([ADR 0005](docs/adr/0005-idempotency-key-sin-ttl.md)).
 - No hay alta de clientes por API: las API Keys se cargan por migración o directo en la base.
