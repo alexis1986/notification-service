@@ -24,7 +24,7 @@ El servicio corre en DigitalOcean Kubernetes. DigitalOcean bloquea por defecto e
 **En contra:**
 
 - **Dependencia de un proveedor externo**, con su cuota y su disponibilidad.
-- **Todos los errores de Resend se reintentan como transitorios,** incluidos los `4xx` que no se arreglan reintentando. El tope de intentos acota el costo. Distinguirlos (`4xx` sin `429` como `undeliverable`) es una mejora pendiente.
+- **Hay que clasificar los errores del proveedor.** `400` y `422` (contenido inválido, como una dirección mal formada) son permanentes: lanzan `DeliveryRejectedException` y la notificación pasa directo a `FAILED`, con el motivo que devuelve Resend en `lastError`. `401` y `403` se reintentan aunque sean `4xx`, porque indican credenciales mal configuradas y se arreglan sin tocar la notificación; marcarlas `FAILED` perdería notificaciones recuperables. `429` y `5xx` también se reintentan.
 
 ## Alternativas descartadas
 
